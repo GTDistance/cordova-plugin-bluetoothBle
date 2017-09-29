@@ -4,7 +4,6 @@ import android.bluetooth.*;
 import android.content.Intent;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -37,10 +36,10 @@ public class BluetoothBle extends CordovaPlugin {
     private final byte sendStart = 0x2b;
     private final byte receiveStart = 0x2c;
     private List<byte[]> sendBytesList;
-    private List<byte[]> receiveBytesList;
+    private List<byte[]> receiveBytesList = new ArrayList<byte[]>();
     private String ssid;
     private String pwd;
-    private String index;
+    private int index;
     private String psn;
     private String mBluetoothDeviceAddress;
 
@@ -56,12 +55,23 @@ public class BluetoothBle extends CordovaPlugin {
 
 
     private void requestPermission() {
+
+//        if (Build.VERSION.SDK_INT >= 23) {
+//            int checkAccessFinePermission = ActivityCompat.checkSelfPermission(cordova.getActivity(), Manifest.permission.ACCESS_FINE_LOCATION);
+//            if (checkAccessFinePermission != PackageManager.PERMISSION_GRANTED) {
+//                ActivityCompat.requestPermissions(cordova.getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+//                Log.d(TAG, "没有权限，请求权限");
+//                return;
+//            }
+//            Log.d(TAG, "已有定位权限");
+//        }
         //做下面该做的事
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!mBluetoothAdapter.isEnabled()) {
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             cordova.getActivity().startActivity(intent);
         }
+
     }
 
 
@@ -81,7 +91,7 @@ public class BluetoothBle extends CordovaPlugin {
             this.callbackContext = callbackContext;
             this.ssid = args.getString(0);
             this.pwd = args.getString(1);
-            this.index = args.getString(2);
+            this.index = args.getInt(2);
             this.psn = args.getString(3);
             if (checkParam()) bluetoothSend();
             return true;
@@ -102,7 +112,7 @@ public class BluetoothBle extends CordovaPlugin {
             callbackContext.error("请填写wifi的密码");
             return false;
         }
-        if (isEmpty(index)) {
+        if (index<0) {
             callbackContext.error("请给设备索引");
             return false;
         }
@@ -110,6 +120,7 @@ public class BluetoothBle extends CordovaPlugin {
             callbackContext.error("请填写设备的PSN");
             return false;
         }
+        System.out.println("ssid:"+ssid+"pwd:"+pwd+"index:"+index+"psn:"+psn);
         return true;
     }
 
@@ -138,9 +149,9 @@ public class BluetoothBle extends CordovaPlugin {
 
 
     private void bluetoothSend() {
-        generateSendList();
+        sendBytesList = generateSendList();
         stopBluetoothBle();
-        BluetoothDevice device = bluetoothDeviceList.get(Integer.valueOf(index));
+        BluetoothDevice device = bluetoothDeviceList.get(index);
         connect(device.getAddress());
     }
 
@@ -260,6 +271,7 @@ public class BluetoothBle extends CordovaPlugin {
                 if (packageIndex >= packageNum) {
                     String message = new String(unitByteArray(receiveBytesList));
                     System.out.println("receive:" + message);
+                    receiveBytesList.clear();
                     try {
                         JSONObject jsonObject = null;
                         jsonObject = new JSONObject(message);
@@ -382,6 +394,7 @@ public class BluetoothBle extends CordovaPlugin {
         disconnect();
         close();
         bluetoothDeviceList.clear();
+        mBluetoothAdapter.stopLeScan(mLeScanCallback);
         mBluetoothAdapter.startLeScan(mLeScanCallback);
     }
 
@@ -392,20 +405,32 @@ public class BluetoothBle extends CordovaPlugin {
                 public void onLeScan(BluetoothDevice device, int rssi,
                                      byte[] scanRecord) {
                     if (device.getName() != null && !"".equals(device.getName().trim())) {
-                        bluetoothDeviceList.add(device);
-                        try {
-                            JSONObject deviceObj = new JSONObject();
-                            deviceObj.put("name", device.getName());
-                            deviceObj.put("deviceIndex", bluetoothDeviceList.indexOf(device));
-                            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, deviceObj.toString());
-                            pluginResult.setKeepCallback(true);
-                            callbackContext.sendPluginResult(pluginResult);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                        if (!isContainDeviceName(device.getName())){
+                            bluetoothDeviceList.add(device);
+                            try {
+                                JSONObject deviceObj = new JSONObject();
+                                deviceObj.put("name", device.getName());
+                                deviceObj.put("deviceIndex", bluetoothDeviceList.indexOf(device));
+                                System.out.println("name"+device.getName()+"deviceIndex"+bluetoothDeviceList.indexOf(device));
+                                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, deviceObj.toString());
+                                pluginResult.setKeepCallback(true);
+                                callbackContext.sendPluginResult(pluginResult);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }
             };
+
+    private boolean isContainDeviceName(String name){
+        for (BluetoothDevice device:bluetoothDeviceList){
+            if(name.equals(device.getName())){
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * 停止搜索
