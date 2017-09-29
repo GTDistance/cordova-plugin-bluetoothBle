@@ -1,16 +1,10 @@
 package com.thomas.bluetooth;
 
 import android.bluetooth.*;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Message;
-import android.support.annotation.RequiresApi;
 import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -18,17 +12,13 @@ import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+
 public class BluetoothBle extends CordovaPlugin {
 
     private BluetoothAdapter mBluetoothAdapter;
@@ -74,7 +64,7 @@ public class BluetoothBle extends CordovaPlugin {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if ("getWifiName".equals(action)) {
@@ -146,7 +136,7 @@ public class BluetoothBle extends CordovaPlugin {
     }
 
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+
     private void bluetoothSend() {
         generateSendList();
         stopBluetoothBle();
@@ -182,6 +172,7 @@ public class BluetoothBle extends CordovaPlugin {
             } else {
                 return false;
             }
+
         }
 
         final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
@@ -385,7 +376,7 @@ public class BluetoothBle extends CordovaPlugin {
     /**
      * 开始搜索
      */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+
     private void searchBluetoothDevice() {
         //如果当前在搜索，就先取消搜索
         disconnect();
@@ -419,7 +410,7 @@ public class BluetoothBle extends CordovaPlugin {
     /**
      * 停止搜索
      */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+
     private void stopBluetoothBle() {
         //如果当前在搜索，就先取消搜索
         mBluetoothAdapter.stopLeScan(mLeScanCallback);
