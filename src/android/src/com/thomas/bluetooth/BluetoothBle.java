@@ -52,6 +52,7 @@ public class BluetoothBle extends CordovaPlugin {
     private String pwd;
     private String index;
     private String psn;
+    private String mBluetoothDeviceAddress;
 
 
     private String TAG = BluetoothBle.class.getSimpleName();
@@ -144,13 +145,57 @@ public class BluetoothBle extends CordovaPlugin {
         callbackContext.success(ssid);
     }
 
+
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void bluetoothSend() {
-        disconnect();
+        generateSendList();
+        stopBluetoothBle();
         BluetoothDevice device = bluetoothDeviceList.get(Integer.valueOf(index));
-        mBluetoothGatt = device.connectGatt(cordova.getActivity(), false, mGattCallback);
+        connect(device.getAddress());
     }
 
+    private List<byte[]> generateSendList() {
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("wifiSSID", ssid);
+            jsonObject.put("password", pwd);
+            jsonObject.put("psn", psn);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return string2Bytes(jsonObject.toString());
+    }
+
+    public boolean connect(final String address) {
+        if (mBluetoothAdapter == null || address == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
+            return false;
+        }
+
+        // Previously connected device.  Try to reconnect.
+        if (mBluetoothDeviceAddress != null && address.equals(mBluetoothDeviceAddress)
+                && mBluetoothGatt != null) {
+            Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.");
+            if (mBluetoothGatt.connect()) {
+                sendMessage(sendBytesList.remove(0));
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        if (device == null) {
+            Log.w(TAG, "Device not found.  Unable to connect.");
+            return false;
+        }
+        // We want to directly connect to the device, so we are setting the autoConnect
+        // parameter to false.
+        mBluetoothGatt = device.connectGatt(cordova.getActivity(), false, mGattCallback);
+        Log.d(TAG, "Trying to create a new connection.");
+        mBluetoothDeviceAddress = address;
+        return true;
+    }
 
     private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
@@ -169,18 +214,9 @@ public class BluetoothBle extends CordovaPlugin {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.e(TAG, "成功发现服务");
-                JSONObject jsonObject = new JSONObject();
-                try {
-                    jsonObject.put("wifiSSID", ssid);
-                    jsonObject.put("password", pwd);
-                    jsonObject.put("psn", psn);
-                    sendBytesList = string2Bytes(jsonObject.toString());
-                    sendMessage(sendBytesList.remove(0));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
 
-//                    readCharacteristic();
+                sendMessage(sendBytesList.remove(0));
+
             } else {
 
                 Log.e(TAG, "服务发现失败，错误码为:" + status);
@@ -222,25 +258,19 @@ public class BluetoothBle extends CordovaPlugin {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
-//            String receive = new String(characteristic.getValue());
-//            Log.e(TAG,receive);
-
             ByteBuffer byteBuffer = ByteBuffer.wrap(characteristic.getValue());
             byte start = byteBuffer.get();
-
             if (start == receiveStart) {
-
-                byte packeteNum = byteBuffer.get();
-                byte packeteIndex = byteBuffer.get();
+                byte packageNum = byteBuffer.get();
+                byte packageIndex = byteBuffer.get();
                 byte[] content = new byte[byteBuffer.remaining()];
                 byteBuffer.get(content);
-                receiveBytesList.add(packeteIndex - 1, content);
-                if (packeteIndex >= packeteNum) {
+                receiveBytesList.add(packageIndex - 1, content);
+                if (packageIndex >= packageNum) {
                     String message = new String(unitByteArray(receiveBytesList));
                     System.out.println("receive:" + message);
-                    receiveBytesList.clear();
-                    JSONObject jsonObject = null;
                     try {
+                        JSONObject jsonObject = null;
                         jsonObject = new JSONObject(message);
                         int id = jsonObject.getInt("id");
                         String contentStr = jsonObject.getString("content");
@@ -358,6 +388,8 @@ public class BluetoothBle extends CordovaPlugin {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void searchBluetoothDevice() {
         //如果当前在搜索，就先取消搜索
+        disconnect();
+        close();
         bluetoothDeviceList.clear();
         mBluetoothAdapter.startLeScan(mLeScanCallback);
     }
