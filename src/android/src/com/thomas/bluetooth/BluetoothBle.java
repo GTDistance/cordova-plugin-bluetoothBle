@@ -21,16 +21,13 @@ import java.util.UUID;
 public class BluetoothBle extends CordovaPlugin {
 
     private BluetoothAdapter mBluetoothAdapter;
-    private final UUID MY_UUID = UUID.fromString("abcd1234-ab12-ab12-ab12-abcdef123456");//随便定义一个
 
     private CallbackContext callbackContext;
-    private boolean isSearch = true;
     private List<BluetoothDevice> bluetoothDeviceList = new ArrayList<BluetoothDevice>();
 
     private BluetoothGatt mBluetoothGatt;
     private BluetoothGattService mBluetoothGattservice;
     private BluetoothGattCharacteristic writeCharacteristic;
-    private boolean connectedState = false;
 
     private final int packageMaxByte = 17;
     private final byte sendStart = 0x2b;
@@ -66,7 +63,6 @@ public class BluetoothBle extends CordovaPlugin {
 //            Log.d(TAG, "已有定位权限");
 //        }
         //做下面该做的事
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!mBluetoothAdapter.isEnabled()) {
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             cordova.getActivity().startActivity(intent);
@@ -81,13 +77,13 @@ public class BluetoothBle extends CordovaPlugin {
             getWifiName(callbackContext);
         } else if ("bluetoothBleSearch".equals(action)) {
             this.callbackContext = callbackContext;
-            isSearch = true;
+
             searchBluetoothDevice();
 
             return true;
         } else if ("bluetoothBleSend".equals(action)) {
             //判断当前是否正在搜索
-            isSearch = false;
+
             this.callbackContext = callbackContext;
             this.ssid = args.getString(0);
             this.pwd = args.getString(1);
@@ -96,7 +92,7 @@ public class BluetoothBle extends CordovaPlugin {
             if (checkParam()) bluetoothSend();
             return true;
         } else if ("bluetoothBleStop".equals(action)) {
-            isSearch = false;
+
             stopBluetoothBle();
             return true;
         }
@@ -164,6 +160,7 @@ public class BluetoothBle extends CordovaPlugin {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+        System.out.println("发送："+jsonObject.toString());
         return string2Bytes(jsonObject.toString());
     }
 
@@ -204,11 +201,16 @@ public class BluetoothBle extends CordovaPlugin {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
             Log.i(TAG, "status:" + status + ",newState:" + newState);//newState 1未连接 2连接
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                connectedState = true;
-                gatt.discoverServices();//连接成功后，我们就要去寻找我们所需要的服务，这里需要先启动服务发现，使用一句代码即可
-            } else {
-                connectedState = false;
+            if (status == BluetoothGatt.GATT_SUCCESS){
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    gatt.discoverServices();//连接成功后，我们就要去寻找我们所需要的服务，这里需要先启动服务发现，使用一句代码即可
+                } else {
+                    disconnect();
+                    close();
+                }
+            }else {
+                disconnect();
+                close();
             }
         }
 
