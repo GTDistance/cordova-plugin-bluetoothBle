@@ -4,13 +4,13 @@ var bluetoothBle = {
     getWifiName:function(success){
       exec(success, null, "BluetoothBle", "getWifiName", []);
     },
-    bluetoothSearch:function(success,error){
+    bluetoothBleSearch:function(success,error){
         exec(success, error, "BluetoothBle", "bluetoothSearch", []);
     },
-    bluetoothSend:function(sendMessage,success,error){
+    bluetoothBleSend:function(sendMessage,success,error){
         exec(success,error,"BluetoothBle","bluetoothSend",[sendMessage.ssid,sendMessage.pwd,sendMessage.deviceIndex,sendMessage.psn]);
     },
-    bluetoothStop:function () {
+    bluetoothBleStop:function () {
       exec(null,null,"BluetoothBle","bluetoothStop",[]);
     }
 };
