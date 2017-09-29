@@ -405,7 +405,7 @@ public class BluetoothBle extends CordovaPlugin {
                         try {
                             JSONObject deviceObj = new JSONObject();
                             deviceObj.put("name", device.getName());
-                            deviceObj.put("index", bluetoothDeviceList.indexOf(device));
+                            deviceObj.put("deviceIndex", bluetoothDeviceList.indexOf(device));
                             PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, deviceObj.toString());
                             pluginResult.setKeepCallback(true);
                             callbackContext.sendPluginResult(pluginResult);
