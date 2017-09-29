@@ -8,7 +8,7 @@ var bluetoothBle = {
         exec(success, error, "BluetoothBle", "bluetoothSearch", []);
     },
     bluetoothSend:function(sendMessage,success,error){
-        exec(success,error,"BluetoothBle","bluetoothSend",[sendMessage.ssid,sendMessage.pwd,sendMessage.address,sendMessage.psn]);
+        exec(success,error,"BluetoothBle","bluetoothSend",[sendMessage.ssid,sendMessage.pwd,sendMessage.deviceIndex,sendMessage.psn]);
     },
     bluetoothStop:function () {
       exec(null,null,"BluetoothBle","bluetoothStop",[]);
