@@ -56,7 +56,6 @@
     
     NSData *sendBytes = [sendJsonData dataUsingEncoding:NSUTF8StringEncoding];
     NSUInteger sendBytesLen =sendBytes.length;
-    NSLog(@"sendBytesLen = %lu",sendBytesLen);
     
     int num = sendBytesLen%self.packageMaxByte;
     if (num == 0) {
@@ -137,8 +136,8 @@
 
 -(NSString *) generateJsonData{
     NSMutableDictionary *detailDic = [[NSMutableDictionary alloc] init];
-    [detailDic setValue:self.ssid forKey:@"wifiSSid"];
-    [detailDic setValue:self.pwd forKey:@"wifiPwd"];
+    [detailDic setValue:self.ssid forKey:@"wifiSSID"];
+    [detailDic setValue:self.pwd forKey:@"password"];
     [detailDic setValue:self.psn forKey:@"psn"];
     NSData * jsonData = [NSJSONSerialization dataWithJSONObject:detailDic options:0 error:nil];
     NSString * myString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
@@ -182,6 +181,7 @@
                 //清空数据
                 [self.receiveData resetBytesInRange:NSMakeRange(0, self.receiveData.length)];
                 [self.receiveData setLength:0];
+                [self.centralManger cancelPeripheralConnection:peripheral];
             }
             
         }
@@ -279,10 +279,6 @@
         }
     }
     [self.peripherals removeAllObjects];
-    
-//    NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber  numberWithBool:YES], CBCentralManagerScanOptionAllowDuplicatesKey, nil];
-    
-    //    [self.centralManger scanForPeripheralsWithServices:nil options:options];
      self.callBackId = command.callbackId;
     [self.centralManger stopScan];
     [self.centralManger scanForPeripheralsWithServices:nil options:nil];
@@ -291,17 +287,16 @@
 
 - (void)bluetoothBleSend:(CDVInvokedUrlCommand*)command{
     self.callBackId = command.callbackId;
+    [self.centralManger stopScan];
     NSArray *arguments = command.arguments;
     self.ssid = arguments[0];
     self.pwd = arguments[1];
     int deviceIndex =[arguments[2] intValue];
     self.psn = arguments[3];
-    
     self.sendArray = [self generateSendArray];
-    [self.centralManger stopScan];
-
     CBPeripheral *peripheral = self.peripherals[deviceIndex];
     [self.centralManger connectPeripheral:peripheral options:nil];
+    
     
 }
 
